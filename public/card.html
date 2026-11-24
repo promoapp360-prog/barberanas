@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0d0d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tessera">
+  <title>La mia tessera</title>
+  <link rel="icon" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css">
+  <script>
+    // Manifest con la tessera giusta, così l'icona sulla Home riapre questa pagina
+    document.write('<link rel="manifest" href="/m/c-' + location.pathname.split('/').pop().replace(/[^\w-]/g, '') + '.webmanifest">');
+  </script>
+</head>
+<body>
+  <main class="wrap">
+    <!-- Visibile solo al barbiere loggato (es. dopo aver inquadrato il QR con la fotocamera dell'iPhone) -->
+    <section class="panel hidden" id="adminBar" style="border-color:var(--gold)">
+      <div class="sheet-head"><h3 style="font-size:17px">✂️ Modalità barbiere</h3><a href="/admin" class="btn small ghost">Pannello</a></div>
+      <div id="adminActions"></div>
+    </section>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="shop serif" id="shop">…</div>
+        <div class="tag">Fidelity</div>
+      </div>
+      <div class="owner">Titolare<b id="owner">…</b></div>
+      <div id="programs" style="margin-top:18px"></div>
+    </div>
+
+    <div id="offers" style="margin-top:16px"></div>
+
+    <section class="panel center" style="margin-top:16px">
+      <h2>Mostra questo QR in negozio</h2>
+      <p class="sub">Il barbiere lo inquadra e ti aggiunge il timbro.</p>
+      <div class="qrbox"><img id="qr" alt="QR della tessera"></div>
+      <div class="facts" style="margin-top:18px">
+        <div><b id="visits">0</b><span>Visite</span></div>
+        <div><b id="rewards">0</b><span>Premi ricevuti</span></div>
+      </div>
+    </section>
+
+    <section class="panel install" id="installBox">
+      <b style="color:var(--text)">📲 Salvala sul telefono</b>
+      <ol id="installSteps"></ol>
+    </section>
+
+    <p class="center"><a href="/?nuova=1" class="muted" style="font-size:13px">Non è la tua tessera?</a></p>
+  </main>
+
+  <script src="/common.js"></script>
+  <script>
+    const token = location.pathname.split('/').pop();
+    let last = null;
+    let adminId = null;
+    let timer = null;
+
+    try { localStorage.setItem('tessera_token', token); } catch {}
+    document.getElementById('qr').src = '/qr.svg?d=' + encodeURIComponent(location.origin + '/c/' + token);
+
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    if (standalone) document.getElementById('installBox').classList.add('hidden');
+    document.getElementById('installSteps').innerHTML = ios
+      ? '<li>Tocca <b>Condividi</b> ⬆️ in Safari</li><li>Scegli <b>Aggiungi alla schermata Home</b></li><li>Tocca <b>Aggiungi</b>: la tessera sarà sempre a portata di mano</li>'
+      : '<li>Apri il menu <b>⋮</b> del browser</li><li>Tocca <b>Aggiungi a schermata Home</b> o <b>Installa app</b></li><li>Conferma: la tessera sarà sempre a portata di mano</li>';
+
+    function stampsHtml(p, prev) {
+      let h = '';
+      for (let i = 1; i <= p.goal; i++) {
+        const on = i <= p.stamps;
+        const pop = on && prev && i > prev.stamps ? ' pop' : '';
+        h += `<div class="stamp${on ? ' on' : ''}${pop}">${on ? esc(p.emoji) : `<span class="n">${i}</span>`}</div>`;
+      }
+      const ready = p.stamps >= p.goal;
+      h += `<div class="stamp free${ready ? ' ready' : ''}">🎁<br>PREMIO</div>`;
+      return h;
+    }
+
+    function render(c) {
+      document.getElementById('shop').textContent = c.shopName;
+      document.title = c.shopName + ' · Tessera';
+      document.getElementById('owner').textContent = c.name;
+      document.getElementById('visits').textContent = c.visits;
+      document.getElementById('rewards').textContent = c.programs.reduce((s, p) => s + p.rewards, 0);
+
+      const prevById = {};
+      (last ? last.programs : []).forEach((p) => (prevById[p.id] = p));
+
+      document.getElementById('programs').innerHTML = c.programs.length ? c.programs.map((p) => {
+        const ready = p.stamps >= p.goal;
+        const left = p.goal - p.stamps;
+        return `<div class="program">
+          <div class="program-head"><h4>${esc(p.emoji)} ${esc(p.title)}</h4><span>${p.ends_at ? 'fino al ' + fmtDay(p.ends_at) : ''}</span></div>
+          <div class="stamps">${stampsHtml(p, prevById[p.id])}</div>
+          <div class="progress-text">${ready ? '<b>Tessera completa!</b>' : `<b>${p.stamps}</b> su ${p.goal} · ${left === 1 ? 'manca <b>1</b>' : `mancano <b>${left}</b>`}`}</div>
+          ${ready ? `<div class="ready-banner">🎉 ${esc(p.reward)}</div>` : `<div class="reward">🎁 ${esc(p.reward)}</div>`}
+        </div>`;
+      }).join('') : '<p class="muted center">Nessuna raccolta punti attiva al momento.</p>';
+
+      document.getElementById('offers').innerHTML = c.offers.map((o) => `<section class="panel offer">
+        <b>${esc(o.emoji)} ${esc(o.title)}</b>
+        ${o.description ? `<p class="sub" style="margin:6px 0 0">${esc(o.description)}</p>` : ''}
+        ${o.ends_at ? `<p class="muted" style="margin:6px 0 0;font-size:13px">Valida fino al ${fmtDay(o.ends_at)}</p>` : ''}
+      </section>`).join('');
+
+      if (last) {
+        for (const p of c.programs) {
+          const before = prevById[p.id];
+          if (!before) continue;
+          if (p.stamps > before.stamps) { toast(`${p.emoji} Timbro aggiunto!`); if (navigator.vibrate) navigator.vibrate(80); }
+          else if (p.rewards > before.rewards) { toast('🎁 Goditi il tuo premio!'); if (navigator.vibrate) navigator.vibrate([60, 60, 60]); }
+        }
+      }
+      last = c;
+      if (adminId) renderAdmin();
+    }
+
+    async function load() {
+      try {
+        render(await api('/api/card/' + token));
+      } catch (e) {
+        if (e.status === 404) {
+          try { localStorage.removeItem('tessera_token'); } catch {}
+          clearInterval(timer);
+          document.querySelector('main').innerHTML = '<section class="panel center"><h2>Tessera non trovata</h2><p class="sub">Il link non è valido o la tessera è stata rimossa.</p><a class="btn" href="/?nuova=1">Crea o ritrova la tessera</a></section>';
+        }
+      }
+    }
+    load();
+    // Aggiornamento automatico: quando il barbiere carica il punto, la tessera si aggiorna da sola
+    timer = setInterval(() => { if (!document.hidden) load(); }, 5000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+
+    // ---- Modalità barbiere ----
+    function renderAdmin() {
+      document.getElementById('adminActions').innerHTML = last.programs.map((p) => {
+        const ready = p.stamps >= p.goal;
+        return `<div class="prog-admin"><b>${esc(p.emoji)} ${esc(p.title)}</b> <span class="muted">${p.stamps}/${p.goal}</span>
+          ${ready
+            ? `<button class="btn" data-a="redeem" data-p="${p.id}">🎁 Consegna premio</button>`
+            : `<button class="btn" data-a="stamp" data-p="${p.id}">${esc(p.emoji)} +1 timbro</button>`}
+          ${p.stamps > 0 ? `<button class="btn dark small" style="margin-top:8px" data-a="unstamp" data-p="${p.id}">Togli un timbro</button>` : ''}
+        </div>`;
+      }).join('');
+    }
+    (async () => {
+      try {
+        await api('/api/admin/me');
+        const c = await api('/api/admin/token/' + token);
+        adminId = c.id;
+        document.getElementById('adminBar').classList.remove('hidden');
+        if (last) renderAdmin();
+      } catch {}
+    })();
+    document.getElementById('adminActions').addEventListener('click', async (e) => {
+      const b = e.target.closest('button[data-a]');
+      if (!b) return;
+      const a = b.dataset.a;
+      if (a === 'redeem' && !confirm('Confermi la consegna del premio? La raccolta ripartirà da zero.')) return;
+      if (a === 'unstamp' && !confirm('Tolgo un timbro?')) return;
+      b.disabled = true;
+      try { await api(`/api/admin/customers/${adminId}/${a}`, { method: 'POST', body: { promoId: Number(b.dataset.p) } }); await load(); }
+      catch (err) { toast(err.message); b.disabled = false; }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Locandina tessera</title>
+  <link rel="icon" href="/icon.svg">
+  <style>
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #555; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .sheet { width: 210mm; min-height: 297mm; margin: 10mm auto; background: #0d0d0d; color: #f3eee6; padding: 22mm 18mm; text-align: center; display: flex; flex-direction: column; align-items: center; }
+    .serif { font-family: "Didot", "Bodoni 72", Georgia, serif; }
+    .logo { width: 34mm; }
+    h1 { font-size: 46pt; margin: 6mm 0 0; font-weight: 600; }
+    .kicker { letter-spacing: .3em; text-transform: uppercase; color: #c9a25a; font-size: 13pt; margin-top: 3mm; }
+    .pole { height: 3mm; width: 60mm; margin: 8mm auto; border-radius: 2mm; background: repeating-linear-gradient(-45deg, #b3352f 0 4mm, #f3eee6 4mm 8mm, #2c4f86 8mm 12mm, #f3eee6 12mm 16mm); }
+    .promo { font-size: 26pt; font-weight: 700; margin: 2mm 0; }
+    .promo small { display: block; font-size: 15pt; font-weight: 400; color: #e6c98a; margin-top: 1mm; }
+    .qr { background: #fff; padding: 6mm; border-radius: 6mm; width: 95mm; margin: 10mm auto 6mm; border: 2mm solid #c9a25a; }
+    .qr img { display: block; width: 100%; }
+    .cta { font-size: 20pt; font-weight: 600; }
+    .steps { font-size: 13pt; color: #a39b8f; margin-top: 4mm; line-height: 1.6; }
+    .noprint { text-align: center; margin: 14px; }
+    .noprint button { font-size: 18px; padding: 12px 22px; border-radius: 12px; border: 0; background: #c9a25a; font-weight: 700; cursor: pointer; }
+    @media print { body { background: none; } .sheet { margin: 0; } .noprint { display: none; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <div class="noprint"><button onclick="print()">🖨️ Stampa</button></div>
+  <div class="sheet">
+    <img class="logo" src="/icon.svg" alt="">
+    <h1 class="serif" id="shop">Barber</h1>
+    <div class="kicker">Tessera fedeltà digitale</div>
+    <div class="pole"></div>
+    <div id="promos"></div>
+    <div class="qr"><img id="qr" alt=""></div>
+    <div class="cta">Inquadra e crea la tua tessera</div>
+    <div class="steps">1. Apri la fotocamera e inquadra il QR<br>2. Inserisci nome e numero<br>3. Mostra la tessera a ogni visita</div>
+  </div>
+  <script src="/common.js"></script>
+  <script>
+    document.getElementById('qr').src = '/qr.svg?d=' + encodeURIComponent(location.origin + '/');
+    api('/api/config').then((c) => (document.getElementById('shop').textContent = c.shopName)).catch(() => {});
+    api('/api/promos').then(({ programs }) => {
+      document.getElementById('promos').innerHTML = programs.slice(0, 3).map((p) =>
+        `<div class="promo">${esc(p.emoji)} ${p.goal} ${esc(p.title.toLowerCase())}<small>${esc(p.reward)}</small></div>`).join('');
+    }).catch(() => {});
+  </script>
+</body>
+</html>

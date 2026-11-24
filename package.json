@@ -1,0 +1,14 @@
+{
+  "name": "barberanas-tessera",
+  "version": "1.0.0",
+  "description": "Tessera punti digitale per barbiere: tessera cliente (PWA) + pannello di gestione con promozioni",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}

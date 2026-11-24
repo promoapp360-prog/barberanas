@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0d0d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>{shop} · Tessera Punti</title>
+  <link rel="icon" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/m/home.webmanifest">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="brand">
+      <img class="logo" src="/icon.svg" alt="">
+      <h1 class="serif" data-shop>Barber</h1>
+      <p>Tessera fedeltà</p>
+      <div class="pole"></div>
+    </header>
+
+    <div id="promoList"></div>
+    <p class="center muted" style="margin:-4px 0 16px;font-size:14px">Ogni visita ti diamo un timbro sulla tessera digitale.<br>Niente cartoncini da perdere: è sempre nel tuo telefono.</p>
+
+    <!-- Iscrizione -->
+    <section class="panel" id="regBox">
+      <h2>Crea la tua tessera</h2>
+      <p class="sub">Ci vogliono 10 secondi.</p>
+      <form id="regForm" autocomplete="on">
+        <label for="name">Nome e cognome</label>
+        <input id="name" name="name" autocomplete="name" required minlength="2" maxlength="60" placeholder="Mario Rossi">
+        <label for="phone">Numero di cellulare</label>
+        <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="333 123 4567">
+        <button class="btn" type="submit">Crea la tessera</button>
+        <div class="msg" id="regMsg"></div>
+      </form>
+      <div class="center"><button class="link" id="toRecover" type="button">Hai già la tessera? Ritrovala</button></div>
+    </section>
+
+    <!-- Recupero -->
+    <section class="panel hidden" id="recBox">
+      <h2>Ritrova la tua tessera</h2>
+      <p class="sub">Inserisci il numero con cui ti sei iscritto.</p>
+      <form id="recForm">
+        <label for="rphone">Numero di cellulare</label>
+        <input id="rphone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="333 123 4567">
+        <button class="btn" type="submit">Apri la mia tessera</button>
+        <div class="msg" id="recMsg"></div>
+      </form>
+      <div class="center"><button class="link" id="toReg" type="button">Non hai la tessera? Creala</button></div>
+    </section>
+
+    <p class="center muted" style="font-size:12px">Usiamo nome e numero solo per gestire la tua tessera punti.</p>
+  </main>
+
+  <script src="/common.js"></script>
+  <script>
+    loadShopName();
+    api('/api/promos').then(({ programs, offers }) => {
+      let h = programs.map((p) => `<section class="panel center">
+        <div style="font-size:28px;letter-spacing:4px">${esc(p.emoji).repeat(Math.min(p.goal, 8))}🎁</div>
+        <h2 style="margin-top:10px">${esc(p.title)}: ${p.goal} ${p.goal === 1 ? 'timbro' : 'timbri'}</h2>
+        <p class="sub" style="margin:0">${esc(p.reward)}</p></section>`).join('');
+      h += offers.map((o) => `<section class="panel offer"><b>${esc(o.emoji)} ${esc(o.title)}</b>${o.description ? `<p class="sub" style="margin:6px 0 0">${esc(o.description)}</p>` : ''}${o.ends_at ? `<p class="muted" style="margin:6px 0 0;font-size:13px">Fino al ${fmtDay(o.ends_at)}</p>` : ''}</section>`).join('');
+      document.getElementById('promoList').innerHTML = h;
+    }).catch(() => {});
+
+    // Se questo telefono ha già una tessera, apri direttamente quella
+    try {
+      const saved = localStorage.getItem('tessera_token');
+      if (saved && !location.search.includes('nuova')) location.replace('/c/' + saved);
+    } catch {}
+
+    const show = (reg) => {
+      document.getElementById('regBox').classList.toggle('hidden', !reg);
+      document.getElementById('recBox').classList.toggle('hidden', reg);
+    };
+    document.getElementById('toRecover').onclick = () => show(false);
+    document.getElementById('toReg').onclick = () => show(true);
+
+    function open(token) {
+      try { localStorage.setItem('tessera_token', token); } catch {}
+      location.href = '/c/' + token;
+    }
+
+    document.getElementById('regForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('regMsg');
+      const btn = e.target.querySelector('button');
+      msg.className = 'msg'; msg.textContent = ''; btn.disabled = true;
+      try {
+        const r = await api('/api/register', { method: 'POST', body: { name: document.getElementById('name').value, phone: document.getElementById('phone').value } });
+        if (!r.created) { msg.className = 'msg ok'; msg.textContent = 'Avevi già una tessera: la apriamo.'; }
+        setTimeout(() => open(r.token), r.created ? 0 : 900);
+      } catch (err) { msg.className = 'msg err'; msg.textContent = err.message; btn.disabled = false; }
+    };
+
+    document.getElementById('recForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('recMsg');
+      const btn = e.target.querySelector('button');
+      msg.className = 'msg'; msg.textContent = ''; btn.disabled = true;
+      try {
+        const r = await api('/api/recover', { method: 'POST', body: { phone: document.getElementById('rphone').value } });
+        open(r.token);
+      } catch (err) { msg.className = 'msg err'; msg.textContent = err.message; btn.disabled = false; }
+    };
+  </script>
+</body>
+</html>
