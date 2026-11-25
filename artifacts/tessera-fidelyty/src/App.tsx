@@ -96,6 +96,14 @@ function ErrorState({ message, retry }: { message: string; retry?: () => void })
   </div>;
 }
 
+function ReminderErrorFallback() {
+  return (
+    <p role="status" className="mt-4 rounded-xl border border-[#e4dbcf] bg-[#f1ece3] p-4 text-sm leading-5 text-[#756b60]">
+      I promemoria non sono disponibili su questo dispositivo. La tessera e il QR restano utilizzabili.
+    </p>
+  );
+}
+
 function PromoGlyph({ kind, size = 17 }: { kind: string; size?: number }) {
   return kind === 'offerta' ? <TicketPercent size={size} /> : <Scissors size={size} />;
 }
@@ -199,14 +207,16 @@ function CustomerCardPage() {
         {saveImageMessage && <p role="status" className="mt-3 text-sm text-[#496246]">{saveImageMessage}</p>}
         {saveImageError && <p role="alert" className="mt-3 text-sm text-[#9b4437]">{saveImageError}</p>}
       </section>
-      <PushReminderCard
-        token={token}
-        externalId={c.push_external_id}
-        enabled={c.reminders_enabled}
-        pushAvailable={c.push_available}
-        optedIn={c.push_opted_in}
-        afterDays={c.reminder_after_days}
-      />
+      <ErrorBoundary FallbackComponent={ReminderErrorFallback} resetKey={token}>
+        <PushReminderCard
+          token={token}
+          externalId={c.push_external_id}
+          enabled={c.reminders_enabled}
+          pushAvailable={c.push_available}
+          optedIn={c.push_opted_in}
+          afterDays={c.reminder_after_days}
+        />
+      </ErrorBoundary>
       <InstallApp className="btn-outline mt-4 min-h-11 w-full" />
       <p className="mt-5 text-center"><Link href="/?nuova=1" className="text-xs text-[#81766d] underline underline-offset-4">Questa non è la tua tessera?</Link></p>
       <p className="mt-4 text-center text-xs text-[#58637a]">{barberName(config.data?.shopName || c.shopName)} · A presto in barberia</p>
