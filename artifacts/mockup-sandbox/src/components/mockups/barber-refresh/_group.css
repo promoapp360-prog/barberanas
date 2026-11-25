@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --font-sans: 'Poppins', sans-serif;
+  --background: 38 24% 95%;
+  --foreground: 20 21% 16%;
+  --border: 32 17% 84%;
+  --card: 40 28% 98%;
+  --card-foreground: 20 21% 16%;
+  --primary: 20 21% 16%;
+  --primary-foreground: 39 25% 93%;
+  --muted-foreground: 23 10% 47%;
+  --input: 32 17% 84%;
+  --radius: 0.5rem;
+  --ink: #302821;
+  --paper: #f2eee7;
+  --cream: #fbf8f1;
+  --gold: #b28a4d;
+  --line: #ded6ca;
+  --muted-copy: #82796e;
+}
+
+.barber-current {
+  min-height: 100vh;
+  background: #f2eee7;
+  color: #302821;
+  font-family: 'Poppins', sans-serif;
+}
+
+.barber-current .brand-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 14px;
+  background: #302821;
+  color: #e7c991;
+}
+
+.barber-current .eyebrow {
+  color: #9b7846;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.barber-current .field {
+  width: 100%;
+  border: 1px solid #ded6ca;
+  border-radius: 12px;
+  background: #fffdf9;
+  padding: 13px 15px;
+  color: #302821;
+}
+
+.barber-current .label {
+  display: block;
+  margin: 0 0 7px;
+  color: #665d52;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.barber-current .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: 12px;
+  background: #302821;
+  padding: 13px 18px;
+  color: #fffaf0;
+  font-weight: 600;
+}

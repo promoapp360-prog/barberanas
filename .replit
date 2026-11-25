@@ -1,13 +1,29 @@
-modules = ["nodejs-20", "postgresql-16"]
-run = "npm start"
-
-[nix]
-channel = "stable-24_05"
+modules = ["nodejs-24", "python-base-3.13", "postgresql-16"]
 
 [deployment]
-run = ["npm", "start"]
+router = "application"
 deploymentTarget = "autoscale"
 
-[[ports]]
-localPort = 5000
-externalPort = 80
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+ONESIGNAL_APP_ID = "f84833ba-471d-44f9-8eb4-23a6b9441f05"
+VITE_ONESIGNAL_APP_ID = "f84833ba-471d-44f9-8eb4-23a6b9441f05"
+
+[nix]
+channel = "stable-25_05"

@@ -1,0 +1,679 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API per tessera fedeltà e gestione barbiere
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: loyalty
+  - name: admin
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /config:
+    get:
+      operationId: getShopConfig
+      tags: [loyalty]
+      responses:
+        "200":
+          description: Nome del negozio
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ShopConfig" }
+  /promos:
+    get:
+      operationId: listPublicPromos
+      tags: [loyalty]
+      responses:
+        "200":
+          description: Raccolte e offerte attive
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicPromos" }
+  /register:
+    post:
+      operationId: registerCustomer
+      tags: [loyalty]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomerRegistration" }
+      responses:
+        "200":
+          description: Tessera cliente creata o recuperata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RegistrationResult" }
+        "400":
+          description: Dati non validi
+  /recover:
+    post:
+      operationId: recoverCustomerCard
+      tags: [loyalty]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PhoneInput" }
+      responses:
+        "200":
+          description: Tessera recuperata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenResult" }
+        "404":
+          description: Tessera non trovata
+  /card/{token}:
+    get:
+      operationId: getCustomerCard
+      tags: [loyalty]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 40 }
+      responses:
+        "200":
+          description: Tessera digitale del cliente
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomerCard" }
+        "404":
+          description: Tessera non trovata
+  /push/consent:
+    patch:
+      operationId: updateCustomerPushConsent
+      tags: [loyalty]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PushConsentInput" }
+      responses:
+        "200":
+          description: Preferenza notifiche aggiornata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PushConsentResult" }
+        "400":
+          description: Preferenza non valida
+        "404":
+          description: Tessera non trovata
+        "409":
+          description: Promemoria non attivi
+        "503":
+          description: Notifiche push non configurate
+  /qr.svg:
+    get:
+      operationId: getQrSvg
+      tags: [loyalty]
+      parameters:
+        - in: query
+          name: d
+          required: true
+          schema: { type: string, maxLength: 300 }
+      responses:
+        "200":
+          description: Immagine SVG del codice QR
+          content:
+            image/svg+xml:
+              schema: { type: string }
+  /admin/login:
+    post:
+      operationId: loginAdmin
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminLoginInput" }
+      responses:
+        "200":
+          description: Accesso amministratore riuscito
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResult" }
+        "401":
+          description: Password errata
+  /admin/logout:
+    post:
+      operationId: logoutAdmin
+      tags: [admin]
+      responses:
+        "200":
+          description: Sessione terminata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResult" }
+  /admin/me:
+    get:
+      operationId: getAdminSession
+      tags: [admin]
+      responses:
+        "200":
+          description: Sessione amministratore
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSession" }
+        "401":
+          description: Accesso richiesto
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      responses:
+        "200":
+          description: Riepilogo attività
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminStats" }
+        "401":
+          description: Accesso richiesto
+  /admin/reminder-settings:
+    get:
+      operationId: getReminderSettings
+      tags: [admin]
+      responses:
+        "200":
+          description: Configurazione promemoria push
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReminderSettings" }
+        "401":
+          description: Accesso richiesto
+    put:
+      operationId: updateReminderSettings
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReminderSettingsInput" }
+      responses:
+        "200":
+          description: Configurazione aggiornata e promemoria riprogrammati
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReminderSettings" }
+        "400":
+          description: Configurazione non valida
+        "401":
+          description: Accesso richiesto
+  /admin/promos:
+    get:
+      operationId: listAdminPromos
+      tags: [admin]
+      responses:
+        "200":
+          description: Elenco promozioni
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Promo" }
+        "401":
+          description: Accesso richiesto
+    post:
+      operationId: createPromo
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PromoInput" }
+      responses:
+        "200":
+          description: Promozione creata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Promo" }
+        "401":
+          description: Accesso richiesto
+  /admin/promos/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer, minimum: 1 }
+    put:
+      operationId: updatePromo
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PromoInput" }
+      responses:
+        "200":
+          description: Promozione aggiornata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Promo" }
+        "401":
+          description: Accesso richiesto
+        "404":
+          description: Promozione non trovata
+    delete:
+      operationId: deletePromo
+      tags: [admin]
+      responses:
+        "200":
+          description: Promozione eliminata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResult" }
+        "401":
+          description: Accesso richiesto
+  /admin/customers:
+    get:
+      operationId: listCustomers
+      tags: [admin]
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string, maxLength: 40 }
+      responses:
+        "200":
+          description: Clienti e timbri correnti
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminCustomer" }
+        "401":
+          description: Accesso richiesto
+    post:
+      operationId: createCustomer
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomerRegistration" }
+      responses:
+        "200":
+          description: Cliente creato o già esistente
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCustomerResult" }
+        "401":
+          description: Accesso richiesto
+  /admin/token/{token}:
+    get:
+      operationId: findCustomerByToken
+      tags: [admin]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 40 }
+      responses:
+        "200":
+          description: Cliente associato al QR
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCustomer" }
+        "401":
+          description: Accesso richiesto
+        "404":
+          description: Tessera non riconosciuta
+  /admin/customers/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      operationId: getCustomerDetail
+      tags: [admin]
+      responses:
+        "200":
+          description: Dettaglio cliente, raccolte e attività
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomerDetail" }
+        "401":
+          description: Accesso richiesto
+        "404":
+          description: Cliente non trovato
+    put:
+      operationId: updateCustomer
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomerRegistration" }
+      responses:
+        "200":
+          description: Cliente aggiornato
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminCustomer" }
+        "401":
+          description: Accesso richiesto
+        "404":
+          description: Cliente non trovato
+        "409":
+          description: Numero già associato a un altro cliente
+    delete:
+      operationId: deleteCustomer
+      tags: [admin]
+      responses:
+        "200":
+          description: Cliente eliminato
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResult" }
+        "401":
+          description: Accesso richiesto
+  /admin/customers/{id}/stamp:
+    post:
+      operationId: stampCustomer
+      tags: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StampInput" }
+      responses:
+        "200":
+          description: Timbro aggiunto
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StampResult" }
+        "401":
+          description: Accesso richiesto
+        "409":
+          description: Tessera piena o promozione inattiva
+  /admin/customers/{id}/unstamp:
+    post:
+      operationId: unstampCustomer
+      tags: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StampInput" }
+      responses:
+        "200":
+          description: Timbro corretto
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StampResult" }
+        "401":
+          description: Accesso richiesto
+        "409":
+          description: Nessun timbro da correggere
+  /admin/customers/{id}/redeem:
+    post:
+      operationId: redeemCustomerReward
+      tags: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StampInput" }
+      responses:
+        "200":
+          description: Omaggio consegnato
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StampResult" }
+        "401":
+          description: Accesso richiesto
+        "409":
+          description: Timbri insufficienti
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string }
+      required: [status]
+    ShopConfig:
+      type: object
+      required: [shopName]
+      properties:
+        shopName: { type: string }
+    OkResult:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
+    PhoneInput:
+      type: object
+      required: [phone]
+      properties:
+        phone: { type: string, minLength: 8, maxLength: 30 }
+    CustomerRegistration:
+      type: object
+      required: [name, phone]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 60 }
+        phone: { type: string, minLength: 8, maxLength: 30 }
+    AdminLoginInput:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string, minLength: 1, maxLength: 256 }
+    RegistrationResult:
+      type: object
+      required: [token, created]
+      properties:
+        token: { type: string }
+        created: { type: boolean }
+    TokenResult:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string }
+    PromoInput:
+      type: object
+      required: [kind, title, emoji, reward, description, active]
+      properties:
+        kind: { type: string, enum: [punti, offerta] }
+        title: { type: string, minLength: 2, maxLength: 40 }
+        emoji: { type: string, maxLength: 8 }
+        goal: { type: ["integer", "null"], minimum: 1, maximum: 30 }
+        reward: { type: string, maxLength: 80 }
+        description: { type: string, maxLength: 300 }
+        active: { type: boolean }
+        ends_at: { type: ["string", "null"], format: date }
+    Promo:
+      allOf:
+        - $ref: "#/components/schemas/PromoInput"
+        - type: object
+          required: [id, live, created_at]
+          properties:
+            id: { type: integer }
+            live: { type: boolean }
+            created_at: { type: string, format: date-time }
+    PublicProgram:
+      type: object
+      required: [title, emoji, goal, reward]
+      properties:
+        title: { type: string }
+        emoji: { type: string }
+        goal: { type: integer }
+        reward: { type: string }
+    PublicOffer:
+      type: object
+      required: [id, title, emoji, description, ends_at]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        emoji: { type: string }
+        description: { type: string }
+        ends_at: { type: ["string", "null"], format: date }
+    PublicPromos:
+      type: object
+      required: [programs, offers]
+      properties:
+        programs:
+          type: array
+          items: { $ref: "#/components/schemas/PublicProgram" }
+        offers:
+          type: array
+          items: { $ref: "#/components/schemas/PublicOffer" }
+    CustomerProgram:
+      allOf:
+        - $ref: "#/components/schemas/PublicProgram"
+        - type: object
+          required: [id, description, ends_at, stamps, rewards]
+          properties:
+            id: { type: integer }
+            description: { type: string }
+            ends_at: { type: ["string", "null"], format: date }
+            stamps: { type: integer }
+            rewards: { type: integer }
+    CustomerCard:
+      type: object
+      required: [shopName, name, visits, programs, offers, reminders_enabled, reminder_after_days, push_available, push_opted_in, push_external_id]
+      properties:
+        shopName: { type: string }
+        name: { type: string }
+        visits: { type: integer }
+        reminders_enabled: { type: boolean }
+        reminder_after_days: { type: integer, minimum: 1, maximum: 30 }
+        push_available: { type: boolean }
+        push_opted_in: { type: boolean }
+        push_external_id: { type: ["string", "null"] }
+        programs:
+          type: array
+          items: { $ref: "#/components/schemas/CustomerProgram" }
+        offers:
+          type: array
+          items: { $ref: "#/components/schemas/PublicOffer" }
+    PromoProgress:
+      type: object
+      required: [promo_id, stamps]
+      properties:
+        promo_id: { type: integer }
+        stamps: { type: integer }
+    AdminCustomer:
+      type: object
+      required: [id, token, name, phone, visits, created_at, last_visit, progress]
+      properties:
+        id: { type: integer }
+        token: { type: string }
+        name: { type: string }
+        phone: { type: string }
+        visits: { type: integer }
+        created_at: { type: string, format: date-time }
+        last_visit: { type: ["string", "null"], format: date-time }
+        progress:
+          type: array
+          items: { $ref: "#/components/schemas/PromoProgress" }
+    AdminCustomerResult:
+      type: object
+      required: [customer, created]
+      properties:
+        customer: { $ref: "#/components/schemas/AdminCustomer" }
+        created: { type: boolean }
+    AdminSession:
+      type: object
+      required: [ok, shopName]
+      properties:
+        ok: { type: boolean }
+        shopName: { type: string }
+    AdminStats:
+      type: object
+      required: [customers, rewards, ready, today]
+      properties:
+        customers: { type: integer }
+        rewards: { type: integer }
+        ready: { type: integer }
+        today: { type: integer }
+    ReminderSettings:
+      type: object
+      required: [enabled, after_days, title, message, push_available, subscribed_customers]
+      properties:
+        enabled: { type: boolean }
+        after_days: { type: integer, minimum: 1, maximum: 30 }
+        title: { type: string, minLength: 1, maxLength: 60 }
+        message: { type: string, minLength: 1, maxLength: 240 }
+        push_available: { type: boolean }
+        subscribed_customers: { type: integer, minimum: 0 }
+    ReminderSettingsInput:
+      type: object
+      required: [enabled, after_days, title, message]
+      properties:
+        enabled: { type: boolean }
+        after_days: { type: integer, minimum: 1, maximum: 30 }
+        title: { type: string, minLength: 1, maxLength: 60 }
+        message: { type: string, minLength: 1, maxLength: 240 }
+    PushConsentInput:
+      type: object
+      required: [token, enabled]
+      properties:
+        token: { type: string, minLength: 8, maxLength: 40 }
+        enabled: { type: boolean }
+    PushConsentResult:
+      type: object
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
+    ActivityEvent:
+      type: object
+      required: [type, created_at, promo, emoji]
+      properties:
+        type: { type: string }
+        created_at: { type: string, format: date-time }
+        promo: { type: ["string", "null"] }
+        emoji: { type: ["string", "null"] }
+    CustomerDetail:
+      type: object
+      required: [customer, programs, events]
+      properties:
+        customer: { $ref: "#/components/schemas/AdminCustomer" }
+        programs:
+          type: array
+          items: { $ref: "#/components/schemas/CustomerProgram" }
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/ActivityEvent" }
+    StampInput:
+      type: object
+      required: [promoId]
+      properties:
+        promoId: { type: integer, minimum: 1 }
+    StampResult:
+      type: object
+      required: [promo_id, stamps, rewards, goal]
+      properties:
+        promo_id: { type: integer }
+        stamps: { type: integer }
+        rewards: { type: integer }
+        goal: { type: integer }

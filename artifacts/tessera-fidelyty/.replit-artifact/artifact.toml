@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Tessera Fidelyty"
+description = "Tessera fedeltà digitale per un barbiere: un timbro per ogni acquisto, un taglio omaggio dopo 6 timbri. I clienti consultano il saldo dal telefono e il barbiere gestisce le tessere dalla sua area riservata."
+version = "1.0.0"
+id = "artifacts/tessera-fidelyty"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23204
+
+[services.development]
+run = "pnpm --filter @workspace/tessera-fidelyty run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/tessera-fidelyty", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/tessera-fidelyty/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23204"
+BASE_PATH = "/"
